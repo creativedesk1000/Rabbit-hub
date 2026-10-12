@@ -4,6 +4,7 @@ import { BreedsSection, ForSaleSection } from './components/BreedSale'
 import { GallerySection, GuidesSection } from './components/GalleryGuides'
 import { TestimonialsSection, ContactSection } from './components/TestimonialsContact'
 import SocialFeed from './components/SocialFeed'
+import AppDownloadSection from './components/AppDownload'
 
 function App() {
   return (
@@ -11,6 +12,7 @@ function App() {
       <Navbar />
       <main>
         <Hero />
+        <AppDownloadSection />
         <About />
         <BreedsSection />
         <ForSaleSection />

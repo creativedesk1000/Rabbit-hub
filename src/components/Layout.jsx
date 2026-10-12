@@ -16,6 +16,7 @@ const Navbar = () => {
 
     const navLinks = [
         { name: 'Home', href: '#home' },
+        { name: 'App', href: '#app' },
         { name: 'Breeds', href: '#breeds' },
         { name: 'For Sale', href: '#sale' },
         { name: 'Gallery', href: '#gallery' },
@@ -28,9 +29,9 @@ const Navbar = () => {
         <nav className={`fixed w-full z-50 transition-all duration-300 ${scrolled ? 'bg-white/80 backdrop-blur-md py-4 shadow-sm' : 'bg-transparent py-6'}`}>
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex justify-between items-center">
-                    <div className="flex-shrink-0 flex items-center">
-                        <span className="font-serif text-2xl font-bold text-primary tracking-tight">RABBIT HUB</span>
-                    </div>
+                    <a href="#home" className="flex-shrink-0 flex items-center" aria-label="Rabbit Hub home">
+                        <img src="/rabbit-hub-logo.png" alt="Rabbit Hub" className="h-12 w-auto max-w-[190px] object-contain" />
+                    </a>
 
                     <div className="hidden md:block">
                         <div className="ml-10 flex items-baseline space-x-8">
@@ -97,7 +98,9 @@ const Footer = () => {
         <footer className="bg-primary-dark text-white pt-20 pb-10">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-12">
                 <div className="space-y-6">
-                    <h3 className="font-serif text-2xl font-bold tracking-tight text-white mb-4">RABBIT HUB</h3>
+                    <a href="#home" aria-label="Rabbit Hub home">
+                        <img src="/rabbit-hub-logo.png" alt="Rabbit Hub" className="h-16 w-auto max-w-[240px] object-contain object-left" />
+                    </a>
                     <p className="text-sand-200 text-sm leading-relaxed">
                         Premium breeding rabbits raised with ethical standards and professional care. Your trusted partner in high-end rabbit farming.
                     </p>
