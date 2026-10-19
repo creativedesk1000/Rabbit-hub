@@ -21,7 +21,7 @@ const AppDownloadSection = () => (
                     Keep up with Rabbit Hub wherever you go. Download the Android app to explore the app experience on your phone.
                 </p>
                 <a
-                    href="/rabbit-hub.apk"
+                    href="/rabbitub.apk"
                     download="Rabbit-Hub.apk"
                     className="inline-flex items-center justify-center gap-3 rounded-sm bg-white px-7 py-4 font-semibold text-primary-dark shadow-lg transition hover:-translate-y-0.5 hover:bg-sand-100"
                 >
