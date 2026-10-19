@@ -84,7 +84,7 @@ const BreedsSection = () => {
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
                             transition={{ delay: idx * 0.1, duration: 0.6 }}
-                            className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 group border border-sand-100"
+                            className="ui-card group"
                         >
                             <div className="relative overflow-hidden h-64">
                                 <img
@@ -108,7 +108,7 @@ const BreedsSection = () => {
                                         <span className="font-semibold">{breed.weight}</span>
                                     </div>
                                 </div>
-                                <button className="w-full py-3 bg-transparent border border-sand-200 text-primary-dark font-medium rounded hover:bg-primary-dark hover:text-white transition-all duration-300 flex items-center justify-center group/btn">
+                                <button className="flex min-h-11 w-full items-center justify-center rounded-xl border border-sand-200 bg-white px-4 py-2.5 text-sm font-semibold text-primary-dark transition-all duration-200 hover:border-primary hover:bg-primary hover:text-white active:scale-[0.98] group/btn">
                                     View Details <Info className="ml-2 opacity-0 group-hover/btn:opacity-100 -translate-x-2 group-hover/btn:translate-x-0 transition-all" size={16} />
                                 </button>
                             </div>
@@ -137,7 +137,7 @@ const ForSaleSection = () => {
                             whileInView={{ opacity: 1, scale: 1 }}
                             viewport={{ once: true }}
                             transition={{ delay: idx * 0.1 }}
-                            className="bg-white rounded-xl overflow-hidden shadow-lg border border-sand-50 relative group"
+                            className="ui-card relative group"
                         >
                             <div className="absolute top-4 right-4 z-10">
                                 <span className={cn(
@@ -165,7 +165,7 @@ const ForSaleSection = () => {
 
                                 <div className="flex items-center justify-between mt-6 pt-6 border-t border-sand-100">
                                     <span className="text-2xl font-bold text-primary">{item.price}</span>
-                                    <button className="flex items-center space-x-2 bg-primary text-white px-5 py-2.5 rounded hover:bg-primary-dark transition-colors text-sm font-medium">
+                                    <button className="flex min-h-11 items-center space-x-2 rounded-xl bg-gradient-to-r from-primary to-primary-light px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98]">
                                         <ShoppingCart size={16} />
                                         <span>Contact to Buy</span>
                                     </button>

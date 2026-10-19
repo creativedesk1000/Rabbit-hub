@@ -48,16 +48,35 @@
   font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  color-scheme: light dark;
+  color-scheme: light;
   color: #2C2C2C;
   background-color: #FAF9F6;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
-  background-color: #FAF9F6;
+  background: #FAF9F6;
   overflow-x: hidden;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  font: inherit;
+}
+
+a:focus-visible,
+button:focus-visible {
+  outline: 3px solid color-mix(in srgb, #6B7F6D 55%, transparent);
+  outline-offset: 3px;
 }
 
 @layer base {
@@ -70,22 +89,41 @@ body {
   h6 {
     @apply font-serif text-primary-dark;
   }
+
+  p {
+    text-wrap: pretty;
+  }
 }
 
 @layer components {
   .btn-primary {
-    @apply px-8 py-3 bg-primary text-white font-medium rounded-sm hover:bg-primary-dark transition-all duration-300 shadow-sm hover:shadow-md active:scale-95;
+    @apply inline-flex min-h-12 items-center justify-center rounded-xl bg-gradient-to-r from-primary to-primary-light px-7 py-3 text-base font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.98];
   }
 
   .btn-secondary {
-    @apply px-8 py-3 border border-primary text-primary font-medium rounded-sm hover:bg-primary hover:text-white transition-all duration-300 active:scale-95;
+    @apply inline-flex min-h-11 items-center justify-center rounded-xl border border-primary/20 bg-white/70 px-5 py-2.5 text-sm font-semibold text-primary-dark transition-all duration-200 hover:border-primary/40 hover:bg-primary hover:text-white active:scale-[0.98];
   }
 
   .glass-card {
-    @apply bg-white/70 backdrop-blur-md border border-white/20 shadow-xl;
+    @apply border border-white/60 bg-white/75 shadow-[0_10px_30px_rgba(30,45,34,0.08)] backdrop-blur-xl;
+  }
+
+  .ui-card {
+    @apply overflow-hidden rounded-2xl border border-primary/[0.08] bg-white shadow-[0_10px_30px_rgba(30,45,34,0.06)] transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_16px_36px_rgba(30,45,34,0.10)];
   }
 }
 
 .smooth-scroll {
   scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

@@ -3,7 +3,7 @@ import { Download, Smartphone } from 'lucide-react'
 
 const AppDownloadSection = () => (
     <section id="app" className="overflow-hidden bg-primary-dark py-20 text-white md:py-28">
-        <div className="mx-auto grid max-w-7xl items-center gap-12 px-4 sm:px-6 lg:grid-cols-2 lg:px-8">
+        <div className="mx-auto grid max-w-7xl items-center gap-12 px-4 sm:px-6 lg:grid-cols-[1.15fr_0.85fr] lg:px-8">
             <Motion.div
                 initial={{ opacity: 0, x: -24 }}
                 whileInView={{ opacity: 1, x: 0 }}
@@ -23,7 +23,7 @@ const AppDownloadSection = () => (
                 <a
                     href="/rabbitub.apk"
                     download="Rabbit-Hub.apk"
-                    className="inline-flex items-center justify-center gap-3 rounded-sm bg-white px-7 py-4 font-semibold text-primary-dark shadow-lg transition hover:-translate-y-0.5 hover:bg-sand-100"
+                    className="inline-flex min-h-14 items-center justify-center gap-3 rounded-xl bg-gradient-to-r from-white to-sand-100 px-8 py-4 text-base font-bold text-primary-dark shadow-[0_12px_28px_rgba(0,0,0,0.16)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_16px_32px_rgba(0,0,0,0.20)] active:scale-[0.98]"
                 >
                     <Download size={20} />
                     Download Android APK
@@ -36,7 +36,7 @@ const AppDownloadSection = () => (
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.7 }}
-                className="mx-auto w-full max-w-lg"
+                className="relative mx-auto w-full max-w-lg lg:translate-x-6"
             >
                 <img
                     src="/app-branding-mockup.png"

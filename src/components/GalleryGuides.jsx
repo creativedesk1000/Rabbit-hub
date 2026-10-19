@@ -111,7 +111,7 @@ const GuidesSection = () => {
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
                             transition={{ delay: idx * 0.1 }}
-                            className="group p-8 border border-sand-100 rounded-2xl bg-white hover:bg-sand-50 transition-all duration-300 hover:shadow-lg hover:-translate-y-1"
+                            className="ui-card group p-8 hover:bg-sand-50"
                         >
                             <div className={`w-16 h-16 rounded-xl flex items-center justify-center mb-6 transition-transform group-hover:scale-110 ${guide.color} ${guide.iconColor}`}>
                                 {guide.icon}
