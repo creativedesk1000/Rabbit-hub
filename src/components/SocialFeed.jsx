@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { motion as Motion } from 'framer-motion'
+import { Facebook, Instagram } from 'lucide-react'
 import SectionHeading from './SectionHeading'
 
 const SocialFeed = () => {
@@ -44,8 +45,6 @@ const SocialFeed = () => {
                                 maxWidth: '540px',
                                 minWidth: '326px',
                                 padding: 0,
-                                width: '99.375%',
-                                width: '-webkit-calc(100% - 2px)',
                                 width: 'calc(100% - 2px)'
                             }}
                         >
@@ -116,16 +115,29 @@ const SocialFeed = () => {
                     >
                         <h3 className="text-3xl font-serif text-primary-dark">Connect with Us</h3>
                         <p className="text-gray-600 leading-relaxed">
-                            Stay up to date with our latest breeding pairs, cute kits, and farm updates on Instagram. Join our community of rabbit enthusiasts!
+                            Stay up to date with our latest breeding pairs, cute kits, and farm updates on Instagram and Facebook. Join our community of rabbit enthusiasts!
                         </p>
-                        <a
-                            href="https://www.instagram.com/rabbits_hub1000/"
-                            target="_blank"
-                            rel="noreferrer"
-                            className="btn-primary inline-flex items-center"
-                        >
-                            Follow @rabbits_hub1000
-                        </a>
+                        <div className="flex flex-wrap justify-center lg:justify-start gap-3">
+                            <a
+                                href="https://www.instagram.com/rabbits_hub1000/"
+                                target="_blank"
+                                rel="noreferrer"
+                                className="btn-primary inline-flex items-center gap-2"
+                            >
+                                <Instagram size={18} />
+                                Follow @rabbits_hub1000
+                            </a>
+                            <a
+                                href="https://www.facebook.com/people/Rabbits-Hub/61591130685324/"
+                                target="_blank"
+                                rel="noreferrer"
+                                aria-label="Follow Rabbit Hub on Facebook"
+                                className="inline-flex items-center gap-2 rounded-full border border-primary px-6 py-3 font-semibold text-primary-dark transition-colors hover:bg-sand-100"
+                            >
+                                <Facebook size={18} />
+                                Follow on Facebook
+                            </a>
+                        </div>
                     </Motion.div>
                 </div>
             </div>

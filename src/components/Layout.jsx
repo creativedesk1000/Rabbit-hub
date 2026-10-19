@@ -108,7 +108,7 @@ const Footer = () => {
                         <a href="https://www.instagram.com/rabbits_hub1000/" target="_blank" rel="noreferrer" className="p-2 bg-white/10 rounded-full hover:bg-primary transition-colors">
                             <Instagram size={18} />
                         </a>
-                        <a href="#" className="p-2 bg-white/10 rounded-full hover:bg-primary transition-colors">
+                        <a href="https://www.facebook.com/people/Rabbits-Hub/61591130685324/" target="_blank" rel="noreferrer" aria-label="Rabbit Hub on Facebook" className="p-2 bg-white/10 rounded-full hover:bg-primary transition-colors">
                             <Facebook size={18} />
                         </a>
                         <a href="https://wa.me/923170479205" target="_blank" rel="noreferrer" className="p-2 bg-white/10 rounded-full hover:bg-primary transition-colors">

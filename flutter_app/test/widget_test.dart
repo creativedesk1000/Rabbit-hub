@@ -173,4 +173,110 @@ void main() {
       containsAll(['breeding_recorded', 'kindling_recorded']),
     );
   });
+
+  test(
+    'breeding and birth details can be rewritten and the record deleted',
+    () async {
+      final originalDoeId = await AppDatabase.instance.saveRabbit({
+        'rabbit_id': 'DOE-001',
+        'name': 'Clover',
+        'gender': 'Female',
+        'status': 'Active',
+      });
+      final correctedDoeId = await AppDatabase.instance.saveRabbit({
+        'rabbit_id': 'DOE-002',
+        'name': 'Hazel',
+        'gender': 'Female',
+        'status': 'Active',
+      });
+      final buckId = await AppDatabase.instance.saveRabbit({
+        'rabbit_id': 'BUCK-001',
+        'name': 'Basil',
+        'gender': 'Male',
+        'status': 'Active',
+      });
+      final recordId = await AppDatabase.instance.saveBreedingRecord({
+        'doe_id': originalDoeId,
+        'buck_id': buckId,
+        'mating_date': DateTime(2026, 10, 1).toIso8601String(),
+        'status': 'Pending',
+      });
+
+      await AppDatabase.instance.saveBreedingRecord({
+        'doe_id': correctedDoeId,
+        'buck_id': buckId,
+        'mating_date': DateTime(2026, 10, 2).toIso8601String(),
+        'kindled_at': DateTime(2026, 11, 4).toIso8601String(),
+        'kit_count': 6,
+        'status': 'Kindled',
+        'notes': 'Corrected birth details',
+      }, id: recordId);
+
+      var record = BreedingRecord.fromMap(
+        (await AppDatabase.instance.breedingRecords()).single,
+      );
+      expect(record.doeId, correctedDoeId);
+      expect(record.matingDate, DateTime(2026, 10, 2));
+      expect(record.kindledAt, DateTime(2026, 11, 4));
+      expect(record.kitCount, 6);
+      expect(record.notes, 'Corrected birth details');
+      expect(
+        (await AppDatabase.instance.rabbit(originalDoeId))!['status'],
+        'Active',
+      );
+      expect(
+        (await AppDatabase.instance.rabbit(correctedDoeId))!['status'],
+        'Nursing',
+      );
+
+      await AppDatabase.instance.saveBreedingRecord({
+        'doe_id': correctedDoeId,
+        'buck_id': buckId,
+        'mating_date': DateTime(2026, 10, 2).toIso8601String(),
+        'kindled_at': DateTime(2026, 11, 5).toIso8601String(),
+        'kit_count': 5,
+        'status': 'Kindled',
+        'notes': 'Final corrected details',
+      }, id: recordId);
+      record = BreedingRecord.fromMap(
+        (await AppDatabase.instance.breedingRecords()).single,
+      );
+      expect(record.kindledAt, DateTime(2026, 11, 5));
+      expect(record.kitCount, 5);
+
+      await AppDatabase.instance.saveBreedingRecord({
+        'doe_id': correctedDoeId,
+        'buck_id': buckId,
+        'mating_date': DateTime(2026, 10, 2).toIso8601String(),
+        'kindled_at': null,
+        'kit_count': null,
+        'status': 'Pending',
+        'notes': 'Birth details removed',
+      }, id: recordId);
+      record = BreedingRecord.fromMap(
+        (await AppDatabase.instance.breedingRecords()).single,
+      );
+      expect(record.status, 'Pending');
+      expect(record.kindledAt, isNull);
+      expect(record.kitCount, isNull);
+      expect(
+        (await AppDatabase.instance.rabbit(correctedDoeId))!['status'],
+        'Pregnant',
+      );
+
+      await AppDatabase.instance.deleteBreedingRecord(recordId);
+
+      expect(await AppDatabase.instance.breedingRecords(), isEmpty);
+      expect(
+        (await AppDatabase.instance.rabbit(correctedDoeId))!['status'],
+        'Active',
+      );
+      expect(
+        (await AppDatabase.instance.history(
+          correctedDoeId,
+        )).map((event) => event['event_type']),
+        contains('breeding_record_deleted'),
+      );
+    },
+  );
 }

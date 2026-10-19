@@ -437,6 +437,19 @@ class AppDatabase {
     final db = await database;
     final now = DateTime.now().toIso8601String();
     return db.transaction((txn) async {
+      final previousRows = id == null
+          ? <Map<String, Object?>>[]
+          : await txn.query(
+              'breeding_records',
+              where: 'id = ?',
+              whereArgs: [id],
+            );
+      if (id != null && previousRows.isEmpty) {
+        throw StateError('Breeding record $id was not found.');
+      }
+      final previousDoeId = previousRows.isEmpty
+          ? null
+          : previousRows.first['doe_id'] as int;
       final recordId =
           id ??
           await txn.insert('breeding_records', {
@@ -453,26 +466,102 @@ class AppDatabase {
         );
       }
       final doeId = values['doe_id'] as int;
-      final status = values['status'] as String;
-      final rabbitStatus = status == 'Kindled' ? 'Nursing' : 'Pregnant';
-      await txn.update(
-        'rabbits',
-        {'status': rabbitStatus, 'updated_at': now},
-        where: 'id = ?',
-        whereArgs: [doeId],
-      );
+      if (previousDoeId != null && previousDoeId != doeId) {
+        await _syncDoeBreedingStatus(txn, previousDoeId, now);
+      }
+      await _syncDoeBreedingStatus(txn, doeId, now);
       await _addHistory(
         txn,
         doeId,
-        status == 'Kindled' ? 'kindling_recorded' : 'breeding_recorded',
-        status == 'Kindled' ? 'Kindling recorded' : 'Breeding recorded',
-        status == 'Kindled'
+        values['status'] == 'Kindled'
+            ? 'kindling_recorded'
+            : 'breeding_recorded',
+        values['status'] == 'Kindled'
+            ? 'Kindling recorded'
+            : 'Breeding recorded',
+        values['status'] == 'Kindled'
             ? '${values['kit_count'] ?? 0} kits recorded'
             : 'Mating date: ${values['mating_date']}',
-        status == 'Kindled' ? values['kindled_at'] as String? ?? now : now,
+        values['status'] == 'Kindled'
+            ? values['kindled_at'] as String? ?? now
+            : now,
       );
       return recordId;
     });
+  }
+
+  Future<void> deleteBreedingRecord(int id) async {
+    final db = await database;
+    final now = DateTime.now().toIso8601String();
+    await db.transaction((txn) async {
+      final rows = await txn.query(
+        'breeding_records',
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+      if (rows.isEmpty) {
+        throw StateError('Breeding record $id was not found.');
+      }
+      final record = rows.first;
+      final doeId = record['doe_id'] as int;
+      await txn.delete('breeding_records', where: 'id = ?', whereArgs: [id]);
+      await _syncDoeBreedingStatus(txn, doeId, now);
+      await _addHistory(
+        txn,
+        doeId,
+        'breeding_record_deleted',
+        'Breeding record deleted',
+        'Mating date: ${record['mating_date']}',
+        now,
+      );
+    });
+  }
+
+  static Future<void> _syncDoeBreedingStatus(
+    DatabaseExecutor txn,
+    int doeId,
+    String now,
+  ) async {
+    final latestRecords = await txn.query(
+      'breeding_records',
+      columns: ['status'],
+      where: 'doe_id = ?',
+      whereArgs: [doeId],
+      orderBy: 'mating_date DESC, id DESC',
+      limit: 1,
+    );
+    final rabbitRows = await txn.query(
+      'rabbits',
+      columns: ['status'],
+      where: 'id = ?',
+      whereArgs: [doeId],
+      limit: 1,
+    );
+    if (rabbitRows.isEmpty) return;
+
+    final rabbitStatus = rabbitRows.first['status'] as String;
+    if (latestRecords.isEmpty) {
+      if (rabbitStatus == 'Pregnant' || rabbitStatus == 'Nursing') {
+        await txn.update(
+          'rabbits',
+          {'status': 'Active', 'updated_at': now},
+          where: 'id = ?',
+          whereArgs: [doeId],
+        );
+      }
+      return;
+    }
+    await txn.update(
+      'rabbits',
+      {
+        'status': latestRecords.first['status'] == 'Kindled'
+            ? 'Nursing'
+            : 'Pregnant',
+        'updated_at': now,
+      },
+      where: 'id = ?',
+      whereArgs: [doeId],
+    );
   }
 
   Future<List<Map<String, Object?>>> breedingRecords({

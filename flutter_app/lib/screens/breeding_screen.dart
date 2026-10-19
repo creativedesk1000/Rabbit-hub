@@ -57,58 +57,106 @@ class _BreedingScreenState extends State<BreedingScreen> {
       builder: (context) => _BreedingDialog(does: does, bucks: bucks),
     );
     if (result == null) return;
+    await _saveRecord(result);
+  }
+
+  Future<void> _editRecord(BreedingRecord record) async {
+    final does = _rabbits.where((rabbit) => rabbit.gender == 'Female').toList();
+    final bucks = _rabbits.where((rabbit) => rabbit.gender == 'Male').toList();
+    final result = await showDialog<_BreedingInput>(
+      context: context,
+      builder: (context) =>
+          _BreedingDialog(does: does, bucks: bucks, initialRecord: record),
+    );
+    if (result == null) return;
+    await _saveRecord(result, record: record);
+  }
+
+  Future<void> _recordBirth(BreedingRecord record) async {
+    final does = _rabbits.where((rabbit) => rabbit.gender == 'Female').toList();
+    final bucks = _rabbits.where((rabbit) => rabbit.gender == 'Male').toList();
+    final result = await showDialog<_BreedingInput>(
+      context: context,
+      builder: (context) => _BreedingDialog(
+        does: does,
+        bucks: bucks,
+        initialRecord: record,
+        recordBirthImmediately: true,
+      ),
+    );
+    if (result == null) return;
+    await _saveRecord(result, record: record);
+  }
+
+  Future<void> _saveRecord(
+    _BreedingInput input, {
+    BreedingRecord? record,
+  }) async {
     final recordId = await AppDatabase.instance.saveBreedingRecord({
-      'doe_id': result.doeId,
-      'buck_id': result.buckId,
-      'mating_date': result.matingDate.toIso8601String(),
-      'status': 'Pending',
-      'notes': result.notes,
-    });
-    var remindersScheduled = false;
+      'doe_id': input.doeId,
+      'buck_id': input.buckId,
+      'mating_date': input.matingDate.toIso8601String(),
+      'kindled_at': input.kindledAt?.toIso8601String(),
+      'kit_count': input.kitCount,
+      'status': input.kindledAt == null ? 'Pending' : 'Kindled',
+      'notes': input.notes,
+    }, id: record?.id);
+
+    var remindersScheduled = true;
     try {
-      final doe = does.firstWhere((rabbit) => rabbit.id == result.doeId);
-      remindersScheduled = await NotificationService.instance
-          .scheduleKindlingReminders(
-            breedingRecordId: recordId,
-            doeName: doe.name,
-            kindlingWindowStart: result.matingDate.add(
-              const Duration(days: BreedingRecord.gestationWindowStartDays),
-            ),
-            typicalKindlingDate: result.matingDate.add(
-              const Duration(days: BreedingRecord.typicalGestationDays),
-            ),
-          );
+      await NotificationService.instance.cancelKindlingReminders(recordId);
+      if (input.kindledAt == null) {
+        final doe = _rabbits.firstWhere((rabbit) => rabbit.id == input.doeId);
+        remindersScheduled = await NotificationService.instance
+            .scheduleKindlingReminders(
+              breedingRecordId: recordId,
+              doeName: doe.name,
+              kindlingWindowStart: input.matingDate.add(
+                const Duration(days: BreedingRecord.gestationWindowStartDays),
+              ),
+              typicalKindlingDate: input.matingDate.add(
+                const Duration(days: BreedingRecord.typicalGestationDays),
+              ),
+            );
+      }
     } catch (_) {
       remindersScheduled = false;
     }
     await _load();
     widget.onChanged();
-    if (mounted && !remindersScheduled) {
+    if (mounted && !remindersScheduled && input.kindledAt == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Mating saved. Enable notifications in your phone settings to receive kindling reminders.',
+            'Record saved. Enable notifications in your phone settings to receive kindling reminders.',
           ),
         ),
       );
     }
   }
 
-  Future<void> _recordKindling(BreedingRecord record) async {
-    final count = await showDialog<int>(
+  Future<void> _deleteRecord(BreedingRecord record) async {
+    final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => const _KitCountDialog(),
+      builder: (context) => AlertDialog(
+        title: const Text('Delete breeding record?'),
+        content: const Text(
+          'This removes the mating and any birth details recorded with it.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
     );
-    if (count == null) return;
-    await AppDatabase.instance.saveBreedingRecord({
-      'doe_id': record.doeId,
-      'buck_id': record.buckId,
-      'mating_date': record.matingDate.toIso8601String(),
-      'kindled_at': DateTime.now().toIso8601String(),
-      'kit_count': count,
-      'status': 'Kindled',
-      'notes': record.notes,
-    }, id: record.id);
+    if (confirmed != true) return;
+    await AppDatabase.instance.deleteBreedingRecord(record.id);
     try {
       await NotificationService.instance.cancelKindlingReminders(record.id);
     } catch (_) {}
@@ -153,7 +201,9 @@ class _BreedingScreenState extends State<BreedingScreen> {
                         record: record,
                         doe: rabbitById[record.doeId],
                         buck: rabbitById[record.buckId],
-                        onKindled: () => _recordKindling(record),
+                        onEdit: () => _editRecord(record),
+                        onDelete: () => _deleteRecord(record),
+                        onRecordBirth: () => _recordBirth(record),
                       ),
                 ],
               ),
@@ -167,20 +217,31 @@ class _BreedingInput {
     required this.doeId,
     required this.buckId,
     required this.matingDate,
+    this.kindledAt,
+    this.kitCount,
     this.notes,
   });
 
   final int doeId;
   final int buckId;
   final DateTime matingDate;
+  final DateTime? kindledAt;
+  final int? kitCount;
   final String? notes;
 }
 
 class _BreedingDialog extends StatefulWidget {
-  const _BreedingDialog({required this.does, required this.bucks});
+  const _BreedingDialog({
+    required this.does,
+    required this.bucks,
+    this.initialRecord,
+    this.recordBirthImmediately = false,
+  });
 
   final List<Rabbit> does;
   final List<Rabbit> bucks;
+  final BreedingRecord? initialRecord;
+  final bool recordBirthImmediately;
 
   @override
   State<_BreedingDialog> createState() => _BreedingDialogState();
@@ -190,32 +251,85 @@ class _BreedingDialogState extends State<_BreedingDialog> {
   int? _doeId;
   int? _buckId;
   DateTime _matingDate = DateTime.now();
+  DateTime? _kindledAt;
+  bool _birthRecorded = false;
   final _notes = TextEditingController();
+  final _kitCount = TextEditingController();
+
+  bool get _validBirthDetails {
+    if (!_birthRecorded) return true;
+    final count = int.tryParse(_kitCount.text.trim());
+    final birthDate = _kindledAt;
+    if (birthDate == null) return false;
+    return _kindledAt != null &&
+        !DateTime(birthDate.year, birthDate.month, birthDate.day).isBefore(
+          DateTime(_matingDate.year, _matingDate.month, _matingDate.day),
+        ) &&
+        count != null &&
+        count >= 0;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    final record = widget.initialRecord;
+    if (record != null) {
+      _doeId = record.doeId;
+      _buckId = record.buckId;
+      _matingDate = record.matingDate;
+      _kindledAt =
+          record.kindledAt ??
+          (widget.recordBirthImmediately ? DateTime.now() : null);
+      _birthRecorded =
+          record.status == 'Kindled' || widget.recordBirthImmediately;
+      _kitCount.text = record.kitCount?.toString() ?? '';
+      _notes.text = record.notes ?? '';
+    }
+  }
 
   @override
   void dispose() {
     _notes.dispose();
+    _kitCount.dispose();
     super.dispose();
   }
 
   Future<void> _chooseDate() async {
     final selected = await showDatePicker(
       context: context,
-      initialDate: _matingDate,
+      initialDate: _matingDate.isAfter(DateTime.now())
+          ? DateTime.now()
+          : _matingDate,
       firstDate: DateTime(1990),
       lastDate: DateTime.now(),
     );
     if (selected != null) setState(() => _matingDate = selected);
   }
 
+  Future<void> _chooseKindledDate() async {
+    final today = DateTime.now();
+    final selected = await showDatePicker(
+      context: context,
+      initialDate: _kindledAt == null || _kindledAt!.isAfter(today)
+          ? today
+          : _kindledAt!,
+      firstDate: DateTime(1990),
+      lastDate: today,
+    );
+    if (selected != null) setState(() => _kindledAt = selected);
+  }
+
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: const Text('Record mating'),
+    title: Text(widget.initialRecord == null ? 'Record mating' : 'Edit record'),
     content: SingleChildScrollView(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           DropdownButtonFormField<int>(
+            value: widget.does.any((rabbit) => rabbit.id == _doeId)
+                ? _doeId
+                : null,
             decoration: const InputDecoration(labelText: 'Doe'),
             items: [
               for (final rabbit in widget.does)
@@ -228,6 +342,9 @@ class _BreedingDialogState extends State<_BreedingDialog> {
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<int>(
+            value: widget.bucks.any((rabbit) => rabbit.id == _buckId)
+                ? _buckId
+                : null,
             decoration: const InputDecoration(labelText: 'Buck'),
             items: [
               for (final rabbit in widget.bucks)
@@ -246,6 +363,49 @@ class _BreedingDialogState extends State<_BreedingDialog> {
             subtitle: Text(DateFormat.yMMMd().format(_matingDate)),
             onTap: _chooseDate,
           ),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Birth recorded'),
+            subtitle: const Text(
+              'Add the actual birth date and number of kits',
+            ),
+            value: _birthRecorded,
+            onChanged: (value) => setState(() {
+              _birthRecorded = value;
+              _kindledAt ??= DateTime.now();
+            }),
+          ),
+          if (_birthRecorded) ...[
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.event_available_outlined),
+              title: const Text('Actual birth date'),
+              subtitle: Text(
+                _kindledAt == null
+                    ? 'Choose the date'
+                    : DateFormat.yMMMd().format(_kindledAt!),
+              ),
+              onTap: _chooseKindledDate,
+            ),
+            TextField(
+              controller: _kitCount,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Number of babies',
+                helperText: 'Enter 0 if the litter did not survive.',
+              ),
+              onChanged: (_) => setState(() {}),
+            ),
+            if (!_validBirthDetails)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  'Enter a valid kit count and a birth date on or after the mating date.',
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+              ),
+          ],
+          const SizedBox(height: 8),
           TextField(
             controller: _notes,
             maxLines: 2,
@@ -260,7 +420,7 @@ class _BreedingDialogState extends State<_BreedingDialog> {
         child: const Text('Cancel'),
       ),
       FilledButton(
-        onPressed: _doeId == null || _buckId == null
+        onPressed: _doeId == null || _buckId == null || !_validBirthDetails
             ? null
             : () => Navigator.pop(
                 context,
@@ -268,50 +428,13 @@ class _BreedingDialogState extends State<_BreedingDialog> {
                   doeId: _doeId!,
                   buckId: _buckId!,
                   matingDate: _matingDate,
+                  kindledAt: _birthRecorded ? _kindledAt : null,
+                  kitCount: _birthRecorded
+                      ? int.parse(_kitCount.text.trim())
+                      : null,
                   notes: _notes.text.trim().isEmpty ? null : _notes.text.trim(),
                 ),
               ),
-        child: const Text('Save'),
-      ),
-    ],
-  );
-}
-
-class _KitCountDialog extends StatefulWidget {
-  const _KitCountDialog();
-
-  @override
-  State<_KitCountDialog> createState() => _KitCountDialogState();
-}
-
-class _KitCountDialogState extends State<_KitCountDialog> {
-  final _count = TextEditingController();
-
-  @override
-  void dispose() {
-    _count.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => AlertDialog(
-    title: const Text('Record kindling'),
-    content: TextField(
-      controller: _count,
-      autofocus: true,
-      keyboardType: TextInputType.number,
-      decoration: const InputDecoration(labelText: 'Number of kits'),
-    ),
-    actions: [
-      TextButton(
-        onPressed: () => Navigator.pop(context),
-        child: const Text('Cancel'),
-      ),
-      FilledButton(
-        onPressed: () {
-          final value = int.tryParse(_count.text.trim());
-          if (value != null && value >= 0) Navigator.pop(context, value);
-        },
         child: const Text('Save'),
       ),
     ],
@@ -323,22 +446,26 @@ class _BreedingRecordTile extends StatelessWidget {
     required this.record,
     required this.doe,
     required this.buck,
-    required this.onKindled,
+    required this.onEdit,
+    required this.onDelete,
+    required this.onRecordBirth,
   });
 
   final BreedingRecord record;
   final Rabbit? doe;
   final Rabbit? buck;
-  final VoidCallback onKindled;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+  final VoidCallback onRecordBirth;
 
   @override
   Widget build(BuildContext context) {
     final dateFormat = DateFormat.yMMMd();
     final completed = record.status == 'Kindled';
     return Card(
-      margin: const EdgeInsets.only(bottom: 10),
+      margin: const EdgeInsets.only(bottom: 14),
       child: Padding(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -351,13 +478,55 @@ class _BreedingRecordTile extends StatelessWidget {
                   ),
                 ),
                 StatusBadge(status: completed ? 'Kindled' : 'Breeding'),
+                PopupMenuButton<String>(
+                  tooltip: 'Breeding record actions',
+                  onSelected: (action) {
+                    if (action == 'edit') onEdit();
+                    if (action == 'delete') onDelete();
+                  },
+                  itemBuilder: (context) => const [
+                    PopupMenuItem(value: 'edit', child: Text('Edit record')),
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: Text('Delete record'),
+                    ),
+                  ],
+                ),
               ],
             ),
-            const SizedBox(height: 8),
-            Text('Mated ${dateFormat.format(record.matingDate)}'),
+            const SizedBox(height: 10),
+            Text(
+              'Mated ${dateFormat.format(record.matingDate)}',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
             if (completed) ...[
-              Text(
-                'Kindled ${dateFormat.format(record.kindledAt!)} · ${record.kitCount ?? 0} kits',
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.secondaryContainer,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.child_friendly_outlined,
+                      color: Theme.of(context).colorScheme.onSecondaryContainer,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Born ${dateFormat.format(record.kindledAt ?? record.matingDate)} · ${record.kitCount ?? 0} babies',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ] else ...[
               const SizedBox(height: 4),
@@ -369,16 +538,17 @@ class _BreedingRecordTile extends StatelessWidget {
                 'Typical date: ${dateFormat.format(record.estimatedKindlingDate)}. Estimates vary; check the doe daily as the window approaches.',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
+            ],
+            if (record.notes?.isNotEmpty == true) Text(record.notes!),
+            if (!completed)
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton.icon(
-                  onPressed: onKindled,
-                  icon: const Icon(Icons.check_circle_outline),
-                  label: const Text('Record kindling'),
+                  onPressed: onRecordBirth,
+                  icon: const Icon(Icons.child_friendly_outlined),
+                  label: const Text('Record birth'),
                 ),
               ),
-            ],
-            if (record.notes?.isNotEmpty == true) Text(record.notes!),
           ],
         ),
       ),
